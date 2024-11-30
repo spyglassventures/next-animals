@@ -1,101 +1,116 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { wheelOptions } from "./data/optionsData";
+import ArrowControlledWheel from "./components/ArrowControlledWheel";
+import ResultBox from "./components/ResultBox";
+import "./globals.css"; // Adjust path if needed
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [result1, setResult1] = useState({ icon: "", label: "" });
+  const [result2, setResult2] = useState({ icon: "", label: "" });
+  const [result3, setResult3] = useState({ icon: "", label: "" });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateImage = async () => {
+    setLoading(true);
+    setError(null);
+
+    const combinedPrompt = `Create a image of an single  animal that is the combination of a  ${result1.label || "Animal"}, ${result2.label || "Dinosaur"}, and ${result3.label || "Creature"}.  No lengend, just the image. It is for kids.`;
+
+    try {
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: combinedPrompt }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+      } else {
+        const errorText = await response.text();
+        console.error("Error generating image:", errorText);
+        setError("Failed to generate image. Check console for details.");
+      }
+    } catch (error) {
+      console.error("Error accessing API:", error);
+      setError("Failed to connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadImage = () => {
+    if (imageUrl) {
+      const a = document.createElement("a");
+      a.href = imageUrl;
+      a.download = "magic_animal.png";
+      a.click();
+    }
+  };
+
+  return (
+    <div
+      className="flex flex-col items-center justify-center bg-gray-100 p-4"
+      style={{ maxWidth: "390px", height: "844px" }}
+    >
+      <h1 className="text-2xl font-bold mb-6 text-black text-center pt-3">
+        Magic Animal Creator
+      </h1>
+
+      {/* Wheels Section */}
+      <div className="flex flex-row gap-4 mb-6">
+        <ArrowControlledWheel options={wheelOptions.animals} onChange={setResult1} />
+        <ArrowControlledWheel options={wheelOptions.dinosaurs} onChange={setResult2} />
+        <ArrowControlledWheel options={wheelOptions.creatures} onChange={setResult3} />
+      </div>
+
+      {/* Result Box */}
+      <ResultBox
+        result={`${result1.label || "Animal"} + ${result2.label || "Dinosaur"} + ${
+          result3.label || "Creature"
+        }`}
+      />
+
+      {/* Generate Image Button */}
+      <button
+        onClick={generateImage}
+        disabled={loading}
+        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+      >
+        {loading ? "⚙️ Generating..." : "🪄 Generate Image ✨"}
+      </button>
+
+      {/* Display the Image and Download Button */}
+      {imageUrl && (
+        <div className="mt-6 flex flex-col items-center">
+          <img
+            src={imageUrl}
+            alt="Generated Art"
+            className="w-full max-w-md rounded-lg shadow-lg mb-4"
+          />
+          <button
+            onClick={downloadImage}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            📥 Download Image
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <p className="mt-4 text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
